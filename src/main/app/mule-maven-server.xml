@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <validation:config name="Validation_Configuration" doc:name="Validation Configuration"/>
+    <flow name="maven-endpoint">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/*" doc:name="HTTP: /*">
+            <http:error-response-builder statusCode="#[flowVars.statusCode]"/>
+        </http:listener>
+        <logger message="#[message.inboundProperties.'http.method' + ':' + message.inboundProperties.'http.request.uri']" level="INFO" doc:name="Received Request"/>
+        <choice doc:name="Choice">
+            <when expression="#[message.inboundProperties.'http.method'.toString().equals(&quot;PUT&quot;)]">
+                <file:outbound-endpoint path="${maven.repository.path}" outputPattern="#[message.inboundProperties.'http.request.uri']" responseTimeout="10000" doc:name="PUT: Save File"/>
+            </when>
+            <when expression="#[message.inboundProperties.'http.method'.toString().equals(&quot;GET&quot;)]">
+                <http:static-resource-handler resourceBase="${maven.repository.path}" doc:name="GET: Retrieve File"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" doc:name="Unkown Request"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>
